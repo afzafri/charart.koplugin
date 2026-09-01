@@ -19,6 +19,7 @@ local Viewer = require("viewer")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local WikiResolver = require("wiki_resolver")
 local ffiUtil = require("ffi/util")
+local logger = require("logger")
 local socket_url = require("socket.url")
 local util = require("util")
 local _ = require("gettext")
@@ -39,6 +40,7 @@ function CharArt:init()
     if self.ui and self.ui.menu then
         self.ui.menu:registerToMainMenu(self)
     end
+    logger.info("CharArt: ready,", #Lookup.sources, "source(s)")
 end
 
 --- Returns the text the user selected, cleaned up for searching.
