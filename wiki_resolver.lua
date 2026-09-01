@@ -7,7 +7,13 @@ of known books, and the fact that a wiki address is often just the title with
 the spaces taken out.
 --]]--
 
+local Http = require("http")
+
 local KNOWN_WIKIS = require("data/wikis")
+
+-- Guessing is only worth a couple of requests before it stops being faster
+-- than just asking the reader which wiki to use.
+local MAX_PROBES = 4
 
 local WikiResolver = {}
 
@@ -75,6 +81,32 @@ function WikiResolver.slugCandidates(props)
         add((trimmed:gsub("%s", "-")))
     end
     return candidates
+end
+
+--- Checks whether a Fandom wiki actually exists at a slug.
+-- @treturn string wiki base URL, or nil
+function WikiResolver.probe(slug)
+    local base = "https://" .. slug .. ".fandom.com"
+    local body = Http.get(base .. "/api.php?action=query&meta=siteinfo&format=json")
+    return body and base or nil
+end
+
+--- Finds the wiki for a book: the known list first, then guessing.
+-- Returns nil when neither works, which is the caller's cue to ask the reader.
+-- @treturn string wiki base URL, or nil
+function WikiResolver.resolve(props)
+    local known = WikiResolver.fromKnownWikis(props)
+    if known then
+        return known
+    end
+    for index, slug in ipairs(WikiResolver.slugCandidates(props)) do
+        if index > MAX_PROBES then break end
+        local found = WikiResolver.probe(slug)
+        if found then
+            return found
+        end
+    end
+    return nil
 end
 
 return WikiResolver
