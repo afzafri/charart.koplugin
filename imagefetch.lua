@@ -11,6 +11,9 @@ local Http = require("http")
 local RenderImage = require("ui/renderimage")
 local logger = require("logger")
 
+-- Size of the stand-in shown when a picture will not download.
+local PLACEHOLDER_SIZE = 600
+
 local ImageFetch = {}
 
 --- Downloads and decodes one picture, reusing the copy on disk if we have it.
@@ -45,6 +48,12 @@ function ImageFetch.lazy(url)
         if not tried then
             tried = true
             image = ImageFetch.fetch(url)
+            if not image then
+                -- The viewer raises "cannot render image" if it is handed
+                -- nothing, so a picture that failed to download has to come
+                -- back as something. A checkerboard reads as "missing".
+                image = RenderImage:renderCheckerboard(PLACEHOLDER_SIZE, PLACEHOLDER_SIZE)
+            end
         end
         return image
     end
