@@ -8,6 +8,7 @@ wiki for pictures of that character and shows them in an image viewer.
 --]]--
 
 local InfoMessage = require("ui/widget/infomessage")
+local InputDialog = require("ui/widget/inputdialog")
 local Lookup = require("lookup")
 local Trapper = require("ui/trapper")
 local UIManager = require("ui/uimanager")
@@ -82,15 +83,52 @@ function CharArt:getWiki()
     return found
 end
 
+--- Asks which wiki covers this book, prefilled with our best guess.
+function CharArt:askForWiki(on_chosen)
+    local guess = WikiResolver.slugCandidates(self.ui.doc_props)[1] or ""
+    local dialog
+    dialog = InputDialog:new{
+        title = _("Wiki for this book"),
+        description = _("The address of a wiki covering this book, or just its Fandom name."),
+        input = guess,
+        buttons = {{
+            {
+                text = _("Cancel"),
+                id = "close",
+                callback = function()
+                    UIManager:close(dialog)
+                end,
+            },
+            {
+                text = _("Use this"),
+                is_enter_default = true,
+                callback = function()
+                    local wiki = WikiResolver.normalize(dialog:getInputText())
+                    UIManager:close(dialog)
+                    if wiki then
+                        self.ui.doc_settings:saveSetting("charart_wiki", wiki)
+                        on_chosen(wiki)
+                    end
+                end,
+            },
+        }},
+    }
+    UIManager:show(dialog)
+    dialog:onShowKeyboard()
+end
+
 function CharArt:lookup(term)
     -- Trapper gives us a "Searching" popup the reader can dismiss, and lets
     -- the network calls below run without freezing the UI.
     Trapper:wrap(function()
+        Trapper:info(_("Finding this book's wiki…"))
         local wiki = self:getWiki()
+        Trapper:clear()
         if not wiki then
-            UIManager:show(InfoMessage:new{
-                text = _("No wiki is set for this book yet."),
-            })
+            -- Ask, then start over once we have an answer.
+            self:askForWiki(function()
+                self:lookup(term)
+            end)
             return
         end
 
