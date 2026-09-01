@@ -17,6 +17,18 @@ local CreditedImageViewer = ImageViewer:extend{
     captions = nil, -- list, parallel to the image list
 }
 
+--- Reports which picture the reader left open.
+-- Swiping to the second or third picture and closing there is a deliberate
+-- act, so we treat it as a preference. Closing on the first picture says
+-- nothing, since that is where everyone starts.
+function CreditedImageViewer:onClose()
+    local shown = self._images_list_cur
+    if self.on_settled and shown and shown > 1 then
+        self.on_settled(shown)
+    end
+    return ImageViewer.onClose(self)
+end
+
 function CreditedImageViewer:switchToImageNum(image_num)
     local caption = self.captions and self.captions[image_num]
     if caption then
@@ -34,7 +46,8 @@ local Viewer = {}
 --- Displays a list of results.
 -- @param title what the reader highlighted, resolved to the wiki's name for it
 -- @param results list of { url, caption } as returned by a source
-function Viewer.show(title, results)
+-- @param on_settled called with the index of the picture the reader chose
+function Viewer.show(title, results, on_settled)
     local images, captions = {}, {}
     for index, result in ipairs(results) do
         images[index] = ImageFetch.lazy(result.url)
@@ -47,6 +60,7 @@ function Viewer.show(title, results)
         image = images,
         captions = captions,
         caption = captions[1],
+        on_settled = on_settled,
         title_text = title,
         with_title_bar = true,
         buttons_visible = true,
