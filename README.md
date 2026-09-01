@@ -9,9 +9,13 @@ artist credited.
 
 It works the same way the dictionary does. Highlight, tap, read, carry on.
 
-| Highlight a name | See who they are |
+| Hold a name | See who they are |
 |---|---|
-| ![The highlight menu, with Character Art alongside KOReader's own entries](screenshots/highlight-menu.png) | ![Carl, drawn by a fan, credited under the title](screenshots/viewer.png) |
+| ![The dictionary popup explaining the Old Norse word carl, with a Character Art button added below it](screenshots/dictionary-popup.png) | ![Carl, drawn by a fan, credited under the title](screenshots/viewer.png) |
+
+Holding a name opens the dictionary, which will earnestly tell you that *carl*
+is Old Norse for "man, freeman" -- true, and no help at all when Carl is a bloke
+in his underwear fighting a dungeon. **Character Art** is added below it.
 
 Two or three pictures are gathered per character. **Previous** and **Next** step
 through them, **Set as default** keeps the one you like so it comes up first
@@ -85,6 +89,11 @@ in the dictionary popup too** -- tap it there and it looks up the word the
 dictionary is showing. Nothing of KOReader's own is replaced to do this; both
 the highlight menu and the dictionary popup have a documented way for plugins
 to add a button.
+
+Selecting more than one word opens the highlight menu instead, where Character
+Art sits with KOReader's own entries:
+
+![The highlight menu, with Character Art alongside Select, Copy and Add note](screenshots/highlight-menu.png)
 
 There is also a bindable action called **Character Art**, for a gesture or a
 hardware key under *Taps and gestures*. It looks up whatever is selected, or
