@@ -28,6 +28,22 @@ jobs:
             exit 1
           fi
 
+      - name: Take the release notes from CHANGELOG.md
+        # A release without a written changelog is a wall of commit subjects,
+        # which tells a reader nothing about whether to update.
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          awk -v ver="$tag_version" '
+            $0 ~ "^## \\[" ver "\\]" { found = 1; next }
+            found && /^## \\[/ { exit }
+            found { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "::error::CHANGELOG.md has no section for $tag_version"
+            exit 1
+          fi
+          cat RELEASE_NOTES.md
+
       - name: Build the plugin archive
         # Built from tracked files rather than the working tree, so nothing
         # local can ride along. Updates Manager strips the archive's root
@@ -43,4 +59,4 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: charart.koplugin.zip
-          generate_release_notes: true
+          body_path: RELEASE_NOTES.md
