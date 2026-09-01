@@ -24,10 +24,9 @@ next time, and **Source** opens the wiki page the picture came from.
 The line under the name is the credit, taken from what the uploader wrote on the
 wiki -- which is usually a good deal more informative than the filename.
 
-## No AI-generated images. Ever.
+## No AI in this plugin
 
-Every picture this plugin shows was drawn by a person and uploaded to a wiki by
-the fans who maintain it.
+Nothing here generates a picture, and nothing here asks a model for one.
 
 - It does **not** generate images.
 - It does **not** call image models, LLMs, or any AI service.
@@ -35,18 +34,33 @@ the fans who maintain it.
 - It holds **no API keys** and talks to **no AI provider**, because there is
   nothing in it that would need one.
 
-The only servers it contacts are the wiki you are reading about and that wiki's
-image host. That is the whole network surface.
+The only servers it contacts are the wiki covering the book you are reading and
+that wiki's image host. That is the whole network surface.
 
 This is deliberate. The art belongs to the people who drew it, and a plugin
 built to show you fan art has no business laundering it through a model. The
-credit shown under each picture is whatever the uploader wrote on the wiki --
-"Art by @hunnydohandmade, Instagram" -- falling back to the filename when they
-wrote nothing.
+credit under each picture is whatever the uploader wrote on the wiki -- "Art by
+@hunnydohandmade, Instagram" -- falling back to the filename when they wrote
+nothing.
 
-If you maintain a wiki and want your art out of this, removing or renaming it on
-the wiki removes it here too. There is no separate copy to chase, beyond a local
-cache on the reader's own device.
+### What it cannot promise
+
+This plugin fetches what a wiki hosts and shows it to you. It does not inspect,
+judge or filter that content, and it has no way to tell how a picture was made.
+
+So: if the people who maintain a wiki upload AI-generated art, this plugin will
+display it, the same as it displays everything else there. Whether that is
+acceptable is a decision for each wiki's community, made on the wiki -- not
+something a reading plugin can or should police from the outside.
+
+What that means in practice:
+
+- **Provenance is the wiki's.** Its upload rules, its credits, its moderation.
+- **Corrections belong there too.** Fix or remove a picture on the wiki and it
+  changes here, because there is no separate copy beyond a cache on your own
+  device.
+- **The pipeline stays clean regardless.** Whatever a wiki hosts, this plugin
+  adds no generation of its own at any point.
 
 ## How it finds the right pictures
 
