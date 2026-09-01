@@ -53,6 +53,11 @@ function MediaWiki.captionFromTitle(title)
 end
 
 --- Phase one: resolve the highlighted text to an article title.
+-- Search relevance alone is not enough. Asking this wiki for "Wei Shi Lindon"
+-- ranks "Wei Clan" above the article actually called "Wei Shi Lindon", because
+-- the clan page mentions the words more often. So we look at several results
+-- and prefer one whose title matches what was highlighted, falling back to the
+-- wiki's own ranking when nothing matches by name.
 -- @treturn string title, or nil if the wiki has nothing matching
 function MediaWiki.resolveTitle(base, term)
     local response = Http.getJson(apiUrl(base, {
@@ -60,11 +65,27 @@ function MediaWiki.resolveTitle(base, term)
         generator = "search",
         gsrnamespace = 0,
         gsrsearch = term,
-        gsrlimit = 1,
+        gsrlimit = 5,
         format = "json",
     }))
-    local best = rankedPages(response)[1]
-    return best and best.title
+    local candidates = rankedPages(response)
+    if #candidates == 0 then
+        return nil
+    end
+
+    local needle = term:lower()
+    for _, page in ipairs(candidates) do
+        if page.title:lower() == needle then
+            return page.title
+        end
+    end
+    for _, page in ipairs(candidates) do
+        local title = page.title:lower()
+        if title:find(needle, 1, true) or needle:find(title, 1, true) then
+            return page.title
+        end
+    end
+    return candidates[1].title
 end
 
 --- Phase two: search the file namespace for pictures of a resolved title.
