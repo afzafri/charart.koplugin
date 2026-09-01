@@ -38,6 +38,23 @@ function ImageFetch.fetch(url)
     return image
 end
 
+--- Downloads a picture into the cache without decoding it.
+-- Used to pull the first picture down while the "looking" message is still on
+-- screen, so the viewer opens on an image that is already to hand instead of
+-- stalling on the network with nothing showing.
+-- @treturn boolean whether the picture is now available locally
+function ImageFetch.prefetch(url)
+    if ArtCache.readImage(url) then
+        return true
+    end
+    local data = Http.get(url)
+    if not data then
+        return false
+    end
+    ArtCache.writeImage(url, data)
+    return true
+end
+
 --- Wraps a URL in a function the image viewer can call when it needs the
 -- picture. Only the first image is worth downloading up front; the rest are
 -- fetched if and when the reader swipes to them.

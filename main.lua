@@ -11,6 +11,7 @@ local ArtCache = require("artcache")
 local ConfirmBox = require("ui/widget/confirmbox")
 local Device = require("device")
 local Dispatcher = require("dispatcher")
+local ImageFetch = require("imagefetch")
 local InfoMessage = require("ui/widget/infomessage")
 local InputDialog = require("ui/widget/inputdialog")
 local Lookup = require("lookup")
@@ -261,15 +262,23 @@ function CharArt:lookup(term)
                 ArtCache.remember(wiki, term, results)
             end
         end
-        Trapper:clear()
-
         if not results then
+            Trapper:clear()
             self:showNothingFound(term, err)
             return
         end
 
         local title = results[1].title or term
         results = self:pinnedFirst(wiki, title, results)
+
+        -- Downloading the first picture is the slowest part, so keep the
+        -- message up until it is here. Otherwise the screen sits unchanged for
+        -- a few seconds and it looks like nothing happened. The rest are still
+        -- fetched only if the reader swipes to them.
+        Trapper:info(T(_("Fetching a picture of %1…"), title))
+        ImageFetch.prefetch(results[1].url)
+        Trapper:clear()
+
         Viewer.show(title, results, function(chosen)
             ArtCache.pin(wiki, title, results[chosen])
         end)
