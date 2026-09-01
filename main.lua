@@ -8,12 +8,20 @@ wiki for pictures of that character and shows them in an image viewer.
 --]]--
 
 local InfoMessage = require("ui/widget/infomessage")
+local Lookup = require("lookup")
+local Trapper = require("ui/trapper")
 local UIManager = require("ui/uimanager")
+local Viewer = require("viewer")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
+local WikiResolver = require("wiki_resolver")
 local ffiUtil = require("ffi/util")
 local util = require("util")
 local _ = require("gettext")
 local T = ffiUtil.template
+
+-- How many pictures to gather, and how wide to ask the wiki to serve them.
+local IMAGE_COUNT = 3
+local IMAGE_WIDTH = 800
 
 local CharArt = WidgetContainer:extend{
     name = "charart",
@@ -61,10 +69,48 @@ function CharArt:addToHighlightDialog()
     end)
 end
 
+--- The wiki to search for this book, remembered per book once we know it.
+function CharArt:getWiki()
+    local saved = self.ui.doc_settings:readSetting("charart_wiki")
+    if saved then
+        return saved
+    end
+    local found = WikiResolver.resolve(self.ui.doc_props)
+    if found then
+        self.ui.doc_settings:saveSetting("charart_wiki", found)
+    end
+    return found
+end
+
 function CharArt:lookup(term)
-    UIManager:show(InfoMessage:new{
-        text = T(_("Looking up art for %1"), term),
-    })
+    -- Trapper gives us a "Searching" popup the reader can dismiss, and lets
+    -- the network calls below run without freezing the UI.
+    Trapper:wrap(function()
+        local wiki = self:getWiki()
+        if not wiki then
+            UIManager:show(InfoMessage:new{
+                text = _("No wiki is set for this book yet."),
+            })
+            return
+        end
+
+        Trapper:info(T(_("Looking for pictures of %1…"), term))
+        local results, err = Lookup.run{
+            term = term,
+            wiki = wiki,
+            limit = IMAGE_COUNT,
+            width = IMAGE_WIDTH,
+        }
+        Trapper:clear()
+
+        if not results then
+            UIManager:show(InfoMessage:new{
+                text = T(_("No picture found for %1.\n\n%2"), term, err or ""),
+            })
+            return
+        end
+        Viewer.show(results[1].title or term, results)
+    end)
 end
 
 function CharArt:addToMainMenu(menu_items)
