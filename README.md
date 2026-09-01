@@ -63,6 +63,25 @@ It speaks plain MediaWiki, so it is not limited to Fandom. Independent wikis
 like `wiki.lspace.org` and `awoiaf.westeros.org` work just as well -- paste the
 address and it will use it.
 
+## Getting to it
+
+Highlight a name and tap **Character art** in the popup.
+
+Two things are worth knowing:
+
+- **Pressing a single word opens the dictionary**, not the highlight menu. That
+  is stock KOReader behaviour. Hold for a full three seconds to get the menu
+  instead, or select more than one word, or bind a gesture (below).
+- **On ZenOS**, the highlight popup is replaced with its own icon row, and
+  third-party buttons are hidden by default. Turn on
+  *Highlight / Lookup → Show other items* in ZenOS settings and Character art
+  appears alongside the Zen buttons.
+
+The plugin also registers a bindable action called **Character art**, so you can
+put it on a gesture or a hardware key under KOReader's *Taps and gestures*. It
+looks up whatever is selected, or asks for a name if nothing is. This avoids the
+menu entirely and works the same on any KOReader.
+
 ## Looking someone up twice
 
 Characters get forgotten and looked up again two hundred pages later. Results
