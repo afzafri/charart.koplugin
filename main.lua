@@ -269,6 +269,7 @@ function CharArt:lookup(term)
         end
 
         local title = results[1].title or term
+        local pinned = ArtCache.pinned(wiki, title)
         results = self:pinnedFirst(wiki, title, results)
 
         -- Downloading the first picture is the slowest part, so keep the
@@ -280,8 +281,8 @@ function CharArt:lookup(term)
         Trapper:clear()
 
         Viewer.show(title, results, function(chosen)
-            ArtCache.pin(wiki, title, results[chosen])
-        end)
+            ArtCache.pin(wiki, title, chosen and results[chosen] or nil)
+        end, pinned and pinned.url)
     end)
 end
 

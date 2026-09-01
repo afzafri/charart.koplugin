@@ -49,11 +49,17 @@ function ArtCache.remember(wiki, term, found)
     results:flush()
 end
 
---- Remembers the picture a reader settled on for a character.
+--- Remembers the picture a reader kept for a character, or forgets it when
+-- passed nothing.
 -- Kept against the wiki and the character rather than the book, so a choice
 -- made in the first volume still holds in the sixth.
 function ArtCache.pin(wiki, title, result)
-    results:saveSetting("pin:" .. key(wiki, title), result)
+    local setting = "pin:" .. key(wiki, title)
+    if result then
+        results:saveSetting(setting, result)
+    else
+        results:delSetting(setting)
+    end
     results:flush()
 end
 

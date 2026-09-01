@@ -17,11 +17,14 @@ local CenterContainer = require("ui/widget/container/centercontainer")
 local Geom = require("ui/geometry")
 local ImageFetch = require("imagefetch")
 local ImageViewer = require("ui/widget/imageviewer")
+local Notification = require("ui/widget/notification")
 local UIManager = require("ui/uimanager")
 local _ = require("gettext")
 
 local CreditedImageViewer = ImageViewer:extend{
-    captions = nil, -- list, parallel to the image list
+    captions = nil,   -- list, parallel to the image list
+    urls = nil,       -- ditto, so a picture can be identified when kept
+    pinned_url = nil, -- the picture already kept for this character, if any
 }
 
 function CreditedImageViewer:init()
@@ -41,6 +44,11 @@ function CreditedImageViewer:_addPagingButtons()
             {
                 text = "◁  " .. _("Previous"),
                 callback = function() self:showRelativeImage(-1) end,
+            },
+            {
+                id = "pin",
+                text = self:pinLabel(),
+                callback = function() self:togglePin() end,
             },
             {
                 text = _("Next") .. "  ▷",
@@ -100,16 +108,41 @@ function CreditedImageViewer:showRelativeImage(step)
     self:switchToImageNum(next_num)
 end
 
---- Reports which picture the reader left open.
--- Swiping to the second or third picture and closing there is a deliberate
--- act, so we treat it as a preference. Closing on the first picture says
--- nothing, since that is where everyone starts.
-function CreditedImageViewer:onClose()
-    local shown = self._images_list_cur
-    if self.on_settled and shown and shown > 1 then
-        self.on_settled(shown)
+--- Whether the picture on screen is the one kept for this character.
+function CreditedImageViewer:isPinned()
+    return self.pinned_url ~= nil
+        and self.urls ~= nil
+        and self.pinned_url == self.urls[self._images_list_cur or 1]
+end
+
+function CreditedImageViewer:pinLabel()
+    return self:isPinned() and _("★ Kept") or _("Keep this")
+end
+
+--- Remembers, or forgets, the picture on screen as this character's.
+-- Search results shift as a wiki gains art, and the first hit is not always
+-- the likeness a reader has in mind, so let them nail one down.
+function CreditedImageViewer:togglePin()
+    if not self.on_pin then return end
+
+    local current = self._images_list_cur or 1
+    if self:isPinned() then
+        self.pinned_url = nil
+        self.on_pin(nil)
+        UIManager:show(Notification:new{ text = _("No longer kept.") })
+    else
+        self.pinned_url = self.urls and self.urls[current]
+        self.on_pin(current)
+        UIManager:show(Notification:new{ text = _("Kept. This picture will come up first.") })
     end
-    return ImageViewer.onClose(self)
+    self:refreshPinLabel()
+end
+
+function CreditedImageViewer:refreshPinLabel()
+    local button = self.button_table and self.button_table:getButtonById("pin")
+    if button then
+        button:setText(self:pinLabel(), button.width)
+    end
 end
 
 function CreditedImageViewer:switchToImageNum(image_num)
@@ -122,6 +155,8 @@ function CreditedImageViewer:switchToImageNum(image_num)
         end
     end
     ImageViewer.switchToImageNum(self, image_num)
+    -- After the switch, so the label describes the picture now on screen.
+    self:refreshPinLabel()
 end
 
 local Viewer = {}
@@ -129,12 +164,14 @@ local Viewer = {}
 --- Displays a list of results.
 -- @param title what the reader highlighted, resolved to the wiki's name for it
 -- @param results list of { url, caption } as returned by a source
--- @param on_settled called with the index of the picture the reader chose
-function Viewer.show(title, results, on_settled)
-    local images, captions = {}, {}
+-- @param on_pin called with the index the reader kept, or nil to forget
+-- @param pinned_url the picture already kept for this character, if any
+function Viewer.show(title, results, on_pin, pinned_url)
+    local images, captions, urls = {}, {}, {}
     for index, result in ipairs(results) do
         images[index] = ImageFetch.lazy(result.url)
         captions[index] = result.caption
+        urls[index] = result.url
     end
     -- Free the decoded images when the viewer closes.
     images.image_disposable = true
@@ -142,8 +179,10 @@ function Viewer.show(title, results, on_settled)
     UIManager:show(CreditedImageViewer:new{
         image = images,
         captions = captions,
+        urls = urls,
+        pinned_url = pinned_url,
         caption = captions[1],
-        on_settled = on_settled,
+        on_pin = on_pin,
         title_text = title,
         with_title_bar = true,
         buttons_visible = true,
