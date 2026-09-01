@@ -13,8 +13,12 @@ It works the same way the dictionary does. Highlight, tap, read, carry on.
 |---|---|
 | ![The highlight menu, with Character Art alongside KOReader's own entries](screenshots/highlight-menu.png) | ![Carl, drawn by a fan, credited under the title](screenshots/viewer.png) |
 
-Two or three pictures are gathered per character, so if the first is not the
-one you wanted, **Previous** and **Next** step through the rest.
+Two or three pictures are gathered per character. **Previous** and **Next** step
+through them, **Set as default** keeps the one you like so it comes up first
+next time, and **Source** opens the wiki page the picture came from.
+
+The line under the name is the credit, taken from what the uploader wrote on the
+wiki -- which is usually a good deal more informative than the filename.
 
 ## No AI-generated images. Ever.
 
