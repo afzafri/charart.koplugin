@@ -44,6 +44,21 @@ local function rankedPages(response)
     return ordered
 end
 
+--- Recovers a picture's filename from its URL, so an image we only have a link
+-- to can still be credited. Covers Wikia's /images/a/ab/Name.jpg layout and
+-- plain MediaWiki's /thumb/a/ab/Name.jpg.
+function MediaWiki.captionFromUrl(url)
+    local name = url:match("/images/%w/%w%w/([^/?]+)")
+        or url:match("/thumb/%w/%w%w/([^/?]+)")
+    if not name then
+        return nil
+    end
+    name = name:gsub("%%(%x%x)", function(hex)
+        return string.char(tonumber(hex, 16))
+    end)
+    return MediaWiki.captionFromTitle(name)
+end
+
 --- Turns "File:Carl by Kippin21.jpg" into "Carl by Kippin21".
 -- Wiki uploaders habitually name files after the subject and the artist, which
 -- makes the filename the most reliable credit we have.
@@ -58,8 +73,8 @@ end
 -- the clan page mentions the words more often. So we look at several results
 -- and prefer one whose title matches what was highlighted, falling back to the
 -- wiki's own ranking when nothing matches by name.
--- @treturn string title, or nil if the wiki has nothing matching
-function MediaWiki.resolveTitle(base, term)
+-- @treturn string title, plus the article's lead image URL if it has one
+function MediaWiki.resolveTitle(base, term, width)
     local response = Http.getJson(apiUrl(base, {
         action = "query",
         generator = "search",
@@ -68,7 +83,7 @@ function MediaWiki.resolveTitle(base, term)
         gsrlimit = 10,
         prop = "pageimages",
         piprop = "thumbnail",
-        pithumbsize = 200,
+        pithumbsize = width or 200,
         format = "json",
     }))
     local candidates = rankedPages(response)
@@ -108,10 +123,13 @@ function MediaWiki.resolveTitle(base, term)
         score = score - rank
 
         if not best_score or score > best_score then
-            best, best_score = page.title, score
+            best, best_score = page, score
         end
     end
-    return best
+    if not best then
+        return nil
+    end
+    return best.title, best.thumbnail and best.thumbnail.source
 end
 
 --- Puts pictures whose filename mentions the subject first.
@@ -229,7 +247,7 @@ end
 -- @param ctx table with term, wiki (base URL), limit and width
 -- @treturn table list of { url, caption }, or nil plus an error message
 function MediaWiki.search(ctx)
-    local title = MediaWiki.resolveTitle(ctx.wiki, ctx.term)
+    local title, lead_image = MediaWiki.resolveTitle(ctx.wiki, ctx.term, ctx.width)
     if not title then
         return nil, "not on this wiki"
     end
@@ -237,14 +255,29 @@ function MediaWiki.search(ctx)
     local found, seen = {}, {}
     local function collect(images)
         for _, image in ipairs(images) do
-            if not seen[image.url] then
-                seen[image.url] = true
+            -- Match on the filename rather than the URL: the same picture
+            -- arrives with different sizing parameters depending on which
+            -- query returned it.
+            local key = MediaWiki.captionFromUrl(image.url) or image.url
+            if not seen[key] then
+                seen[key] = true
                 image.title = title
                 table.insert(found, image)
                 if #found >= ctx.limit then return true end
             end
         end
         return #found >= ctx.limit
+    end
+
+    -- The picture at the top of the character's own page first. Editors choose
+    -- it to show who the character is, whereas a gallery page is in whatever
+    -- order the filenames happen to sort, which is how a crocheted Carl ends
+    -- up ahead of a portrait of him.
+    if lead_image then
+        collect({{
+            url = lead_image,
+            caption = MediaWiki.captionFromUrl(lead_image) or title,
+        }})
     end
 
     if collect(MediaWiki.galleryImages(ctx.wiki, title, GALLERY_PATTERNS, ctx.limit, ctx.width)) then
