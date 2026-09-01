@@ -1,0 +1,46 @@
+name: Release
+
+# Tagging is the whole release process: push v1.2.3 and this builds the archive
+# that Updates Manager installs from.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag matches _meta.lua
+        # A tag that disagrees with _meta.lua leaves readers being offered an
+        # update they already have, or none when there is one.
+        run: |
+          meta_version=$(sed -n 's/.*version = "\([^"]*\)".*/\1/p' _meta.lua)
+          tag_version="${GITHUB_REF_NAME#v}"
+          echo "_meta.lua: $meta_version, tag: $tag_version"
+          if [ "$meta_version" != "$tag_version" ]; then
+            echo "::error::tag $tag_version does not match _meta.lua $meta_version"
+            exit 1
+          fi
+
+      - name: Build the plugin archive
+        # Built from tracked files rather than the working tree, so nothing
+        # local can ride along. Updates Manager strips the archive's root
+        # directory, so everything sits inside one charart.koplugin/ folder,
+        # minus the screenshots, which belong to the repository not the device.
+        run: |
+          mkdir -p build/charart.koplugin
+          git archive --format=tar HEAD | tar -x -C build/charart.koplugin
+          rm -rf build/charart.koplugin/screenshots
+          cd build && zip -r ../charart.koplugin.zip charart.koplugin
+          unzip -l ../charart.koplugin.zip
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: charart.koplugin.zip
+          generate_release_notes: true
