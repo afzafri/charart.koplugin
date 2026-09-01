@@ -59,6 +59,12 @@ function MediaWiki.captionFromUrl(url)
     return MediaWiki.captionFromTitle(name)
 end
 
+--- The wiki page describing a file, where the upload and whatever the
+-- uploader said about it can be seen.
+function MediaWiki.filePageUrl(base, file_title)
+    return base .. "/wiki/" .. socket_url.escape(file_title:gsub(" ", "_"))
+end
+
 --- Turns "File:Carl by Kippin21.jpg" into "Carl by Kippin21".
 -- Wiki uploaders habitually name files after the subject and the artist, which
 -- makes the filename the most reliable credit we have.
@@ -175,6 +181,7 @@ function MediaWiki.fileSearch(base, title, limit, width)
             table.insert(images, {
                 url = url,
                 caption = MediaWiki.captionFromTitle(page.title),
+                page_url = MediaWiki.filePageUrl(base, page.title),
             })
         end
     end
@@ -203,6 +210,7 @@ function MediaWiki.pageImages(base, title, limit, width)
             table.insert(images, {
                 url = url,
                 caption = MediaWiki.captionFromTitle(page.title),
+                page_url = MediaWiki.filePageUrl(base, page.title),
             })
         end
     end
@@ -237,6 +245,7 @@ function MediaWiki.galleryImages(base, title, patterns, limit, width)
             table.insert(images, {
                 url = url,
                 caption = MediaWiki.captionFromTitle(page.title),
+                page_url = MediaWiki.filePageUrl(base, page.title),
             })
         end
     end
@@ -274,9 +283,13 @@ function MediaWiki.search(ctx)
     -- order the filenames happen to sort, which is how a crocheted Carl ends
     -- up ahead of a portrait of him.
     if lead_image then
+        local lead_name = MediaWiki.captionFromUrl(lead_image)
         collect({{
             url = lead_image,
-            caption = MediaWiki.captionFromUrl(lead_image) or title,
+            caption = lead_name or title,
+            page_url = lead_name
+                and MediaWiki.filePageUrl(ctx.wiki, "File:" .. lead_name)
+                or nil,
         }})
     end
 

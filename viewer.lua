@@ -14,9 +14,11 @@ image, and buttons that say so out loud.
 
 local ButtonTable = require("ui/widget/buttontable")
 local CenterContainer = require("ui/widget/container/centercontainer")
+local Device = require("device")
 local Geom = require("ui/geometry")
 local ImageFetch = require("imagefetch")
 local ImageViewer = require("ui/widget/imageviewer")
+local TitleBar = require("ui/widget/titlebar")
 local Notification = require("ui/widget/notification")
 local UIManager = require("ui/uimanager")
 local ffiUtil = require("ffi/util")
@@ -26,6 +28,7 @@ local T = ffiUtil.template
 local CreditedImageViewer = ImageViewer:extend{
     captions = nil,   -- list, parallel to the image list
     urls = nil,       -- ditto, so a picture can be identified when kept
+    page_urls = nil,  -- ditto, the wiki page each picture came from
     pinned_url = nil, -- the picture already kept for this character, if any
 }
 
@@ -58,6 +61,15 @@ function CreditedImageViewer:_addPagingButtons()
             },
         },
         {
+            {
+                id = "source",
+                text = _("Source"),
+                enabled_func = function()
+                    return self.page_urls ~= nil
+                        and self.page_urls[self._images_list_cur or 1] ~= nil
+                end,
+                callback = function() self:openSource() end,
+            },
             {
                 id = "scale",
                 text = self._scale_to_fit and _("Original size") or _("Scale"),
@@ -149,18 +161,53 @@ function CreditedImageViewer:refreshPinLabel()
     end
 end
 
+--- Recaptions the title bar for the picture now showing.
+-- The viewer builds its captioned bar with subtitle_multilines set, and
+-- TitleBar:setSubTitle quietly does nothing in that case -- it opens with
+-- "if self.subtitle_widget and not self.subtitle_multilines". So the bar has
+-- to be built again rather than edited.
+function CreditedImageViewer:setCaption(caption)
+    self.caption = caption
+    if not (self.with_title_bar and self.captioned_title_bar) then
+        return
+    end
+    self.captioned_title_bar = TitleBar:new{
+        width = self.width,
+        align = "left",
+        title = self.title_text,
+        title_multilines = true,
+        subtitle = caption,
+        subtitle_multilines = true,
+        subtitle_fullwidth = true,
+        with_bottom_line = true,
+        left_icon = "triangle",
+        left_icon_rotation_angle = 180,
+        left_icon_tap_callback = function()
+            self.caption_visible = not self.caption_visible
+            self:update()
+        end,
+        close_callback = function() self:onClose() end,
+        show_parent = self,
+    }
+end
+
 function CreditedImageViewer:switchToImageNum(image_num)
     local caption = self.captions and self.captions[image_num]
     if caption then
-        self.caption = caption
-        if self.captioned_title_bar then
-            -- update() is about to redraw everything anyway
-            self.captioned_title_bar:setSubTitle(caption, true)
-        end
+        self:setCaption(caption)
     end
     ImageViewer.switchToImageNum(self, image_num)
-    -- After the switch, so the label describes the picture now on screen.
+    -- After the switch, so both describe the picture now on screen.
     self:refreshPinLabel()
+end
+
+--- Opens the wiki page the picture came from, so the reader can see who made
+-- it and what the wiki says about it.
+function CreditedImageViewer:openSource()
+    local page_url = self.page_urls and self.page_urls[self._images_list_cur or 1]
+    if page_url and Device:canOpenLink() then
+        Device:openLink(page_url)
+    end
 end
 
 local Viewer = {}
@@ -171,11 +218,12 @@ local Viewer = {}
 -- @param on_pin called with the index the reader kept, or nil to forget
 -- @param pinned_url the picture already kept for this character, if any
 function Viewer.show(title, results, on_pin, pinned_url)
-    local images, captions, urls = {}, {}, {}
+    local images, captions, urls, page_urls = {}, {}, {}, {}
     for index, result in ipairs(results) do
         images[index] = ImageFetch.lazy(result.url)
         captions[index] = result.caption
         urls[index] = result.url
+        page_urls[index] = result.page_url
     end
     -- Free the decoded images when the viewer closes.
     images.image_disposable = true
@@ -184,6 +232,7 @@ function Viewer.show(title, results, on_pin, pinned_url)
         image = images,
         captions = captions,
         urls = urls,
+        page_urls = Device:canOpenLink() and page_urls or nil,
         pinned_url = pinned_url,
         caption = captions[1],
         on_pin = on_pin,
