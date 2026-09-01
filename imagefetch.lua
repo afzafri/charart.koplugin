@@ -56,21 +56,23 @@ function ImageFetch.prefetch(url)
 end
 
 --- Wraps a URL in a function the image viewer can call when it needs the
--- picture. Only the first image is worth downloading up front; the rest are
--- fetched if and when the reader swipes to them.
--- @treturn function returns a BlitBuffer, or nil
+-- picture. Only the first image is downloaded up front; the rest are fetched
+-- when the reader pages to them.
+--
+-- Every call decodes afresh, and deliberately so. The viewer owns what this
+-- returns and frees it when the reader moves to another picture, so handing
+-- back a remembered one would be handing back freed memory -- paging forward
+-- and then back again used to take the whole app down. Decoding again is
+-- cheap: the bytes are already on disk by then.
+-- @treturn function returns a BlitBuffer
 function ImageFetch.lazy(url)
-    local image, tried
     return function()
-        if not tried then
-            tried = true
-            image = ImageFetch.fetch(url)
-            if not image then
-                -- The viewer raises "cannot render image" if it is handed
-                -- nothing, so a picture that failed to download has to come
-                -- back as something. A checkerboard reads as "missing".
-                image = RenderImage:renderCheckerboard(PLACEHOLDER_SIZE, PLACEHOLDER_SIZE)
-            end
+        local image = ImageFetch.fetch(url)
+        if not image then
+            -- The viewer raises "cannot render image" if it is handed
+            -- nothing, so a picture that failed to download has to come
+            -- back as something. A checkerboard reads as "missing".
+            image = RenderImage:renderCheckerboard(PLACEHOLDER_SIZE, PLACEHOLDER_SIZE)
         end
         return image
     end
