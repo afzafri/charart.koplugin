@@ -35,9 +35,10 @@ The only servers it contacts are the wiki you are reading about and that wiki's
 image host. That is the whole network surface.
 
 This is deliberate. The art belongs to the people who drew it, and a plugin
-built to show you fan art has no business laundering it through a model. Where
-the wiki's filename names the artist -- and it usually does -- that credit is
-shown under the picture.
+built to show you fan art has no business laundering it through a model. The
+credit shown under each picture is whatever the uploader wrote on the wiki --
+"Art by @hunnydohandmade, Instagram" -- falling back to the filename when they
+wrote nothing.
 
 If you maintain a wiki and want your art out of this, removing or renaming it on
 the wiki removes it here too. There is no separate copy to chase, beyond a local
@@ -78,20 +79,20 @@ address and it will use it.
 
 Highlight a name and tap **Character Art** in the popup.
 
-Two things are worth knowing:
+Pressing a *single* word opens KOReader's dictionary rather than the highlight
+menu, and that is the gesture most people use on a name. So **Character Art is
+in the dictionary popup too** -- tap it there and it looks up the word the
+dictionary is showing. Nothing of KOReader's own is replaced to do this; both
+the highlight menu and the dictionary popup have a documented way for plugins
+to add a button.
 
-- **Pressing a single word opens the dictionary**, not the highlight menu. That
-  is stock KOReader behaviour. Hold for a full three seconds to get the menu
-  instead, or select more than one word, or bind a gesture (below).
-- **On ZenOS**, the highlight popup is replaced with its own icon row, and
-  third-party buttons are hidden by default. Turn on
-  *Highlight / Lookup → Show other items* in ZenOS settings and Character Art
-  appears alongside the Zen buttons.
+There is also a bindable action called **Character Art**, for a gesture or a
+hardware key under *Taps and gestures*. It looks up whatever is selected, or
+asks for a name if nothing is.
 
-The plugin also registers a bindable action called **Character Art**, so you can
-put it on a gesture or a hardware key under KOReader's *Taps and gestures*. It
-looks up whatever is selected, or asks for a name if nothing is. This avoids the
-menu entirely and works the same on any KOReader.
+**On ZenOS**, both popups are replaced with its own icon rows, and third-party
+buttons are hidden by default. Turn on *Highlight / Lookup → Show other items*
+in ZenOS settings and Character Art appears in both.
 
 ## Looking someone up twice
 
@@ -99,8 +100,10 @@ Characters get forgotten and looked up again two hundred pages later. Results
 and the pictures themselves are cached, so the second lookup is instant and
 works with the wifi off.
 
-If you swipe past the first picture and close on a later one, the plugin takes
-that as your choice and shows it first next time.
+If the first picture is not the likeness you had in mind, page to one that is
+and press **Set as default**. That choice is kept against the character and the
+wiki rather than the book, so a Carl chosen in book one still comes up first in
+book seven.
 
 ## Installing
 
