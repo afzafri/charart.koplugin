@@ -88,6 +88,27 @@ function MediaWiki.resolveTitle(base, term)
     return candidates[1].title
 end
 
+--- Puts pictures whose filename mentions the subject first.
+-- A gallery page lists its images alphabetically, which for Carl's gallery
+-- means "Bare Knuckles by Content Office" outranks "Carl-anime-style". The
+-- uploader naming a file after a character is a decent signal that it shows
+-- them, and sorting on it costs no extra requests.
+local function preferNamedAfter(images, title)
+    local needle = title:lower()
+    local named, rest = {}, {}
+    for _, image in ipairs(images) do
+        if image.caption:lower():find(needle, 1, true) then
+            table.insert(named, image)
+        else
+            table.insert(rest, image)
+        end
+    end
+    for _, image in ipairs(rest) do
+        table.insert(named, image)
+    end
+    return named
+end
+
 --- Phase two: search the file namespace for pictures of a resolved title.
 -- @treturn table list of { url, caption }
 function MediaWiki.fileSearch(base, title, limit, width)
@@ -113,7 +134,7 @@ function MediaWiki.fileSearch(base, title, limit, width)
             })
         end
     end
-    return images
+    return preferNamedAfter(images, title)
 end
 
 --- Every image used on an article, as a fallback when the file namespace is
@@ -142,27 +163,6 @@ function MediaWiki.pageImages(base, title, limit, width)
         end
     end
     return images
-end
-
---- Puts pictures whose filename mentions the subject first.
--- A gallery page lists its images alphabetically, which for Carl's gallery
--- means "Bare Knuckles by Content Office" outranks "Carl-anime-style". The
--- uploader naming a file after a character is a decent signal that it shows
--- them, and sorting on it costs no extra requests.
-local function preferNamedAfter(images, title)
-    local needle = title:lower()
-    local named, rest = {}, {}
-    for _, image in ipairs(images) do
-        if image.caption:lower():find(needle, 1, true) then
-            table.insert(named, image)
-        else
-            table.insert(rest, image)
-        end
-    end
-    for _, image in ipairs(rest) do
-        table.insert(named, image)
-    end
-    return named
 end
 
 --- Images from a subject's gallery page, if the wiki keeps one.
