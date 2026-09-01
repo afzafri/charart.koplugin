@@ -213,7 +213,37 @@ function CharArt:addToMainMenu(menu_items)
     menu_items.charart = {
         text = _("Character art"),
         sorting_hint = "more_tools",
-        sub_item_table = {},
+        sub_item_table = {
+            {
+                -- Also the way to correct a wrong guess, which is why it shows
+                -- the wiki currently in use rather than a bare "Change wiki".
+                text_func = function()
+                    local wiki = self.document and self.ui.doc_settings:readSetting("charart_wiki")
+                    if wiki then
+                        return T(_("Wiki: %1"), wiki:gsub("^https?://", ""))
+                    end
+                    return _("Wiki for this book")
+                end,
+                enabled_func = function()
+                    return self.document ~= nil
+                end,
+                keep_menu_open = true,
+                callback = function()
+                    self:askForWiki(function() end)
+                end,
+            },
+            {
+                text = _("Forget saved pictures"),
+                keep_menu_open = true,
+                separator = true,
+                callback = function()
+                    ArtCache.clear()
+                    UIManager:show(InfoMessage:new{
+                        text = _("Saved pictures cleared."),
+                    })
+                end,
+            },
+        },
     }
 end
 
