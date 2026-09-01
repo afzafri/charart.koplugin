@@ -98,8 +98,35 @@ function CharArt:askForName()
     dialog:onShowKeyboard()
 end
 
+--- Adds a button to the dictionary popup.
+-- Holding a single word opens the dictionary rather than the highlight menu,
+-- and that is the gesture people actually use on a name, so the plugin should
+-- be reachable from there too. KOReader offers a registration API for this;
+-- nothing of the dictionary's own is replaced or overridden.
+function CharArt:registerDictButtons()
+    local dictionary = self.ui and self.ui.dictionary
+    if not (dictionary and dictionary.addToDictButtons) then
+        return -- older KOReader without the dictionary button API
+    end
+
+    dictionary:addToDictButtons({
+        id = "charart_lookup",
+        menu_text = _("Character Art"),
+        text = _("Character Art"),
+        insert_first = true,
+        callback = function(dict_popup)
+            local term = dict_popup.word
+            dict_popup:onClose(true)
+            if term and term ~= "" then
+                self:lookup(term)
+            end
+        end,
+    })
+end
+
 function CharArt:init()
     self:onDispatcherRegisterActions()
+    self:registerDictButtons()
     if self.ui and self.ui.highlight and self.document then
         self:addToHighlightDialog()
     end
