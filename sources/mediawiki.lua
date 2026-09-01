@@ -123,6 +123,27 @@ function MediaWiki.pageImages(base, title, limit, width)
     return images
 end
 
+--- Puts pictures whose filename mentions the subject first.
+-- A gallery page lists its images alphabetically, which for Carl's gallery
+-- means "Bare Knuckles by Content Office" outranks "Carl-anime-style". The
+-- uploader naming a file after a character is a decent signal that it shows
+-- them, and sorting on it costs no extra requests.
+local function preferNamedAfter(images, title)
+    local needle = title:lower()
+    local named, rest = {}, {}
+    for _, image in ipairs(images) do
+        if image.caption:lower():find(needle, 1, true) then
+            table.insert(named, image)
+        else
+            table.insert(rest, image)
+        end
+    end
+    for _, image in ipairs(rest) do
+        table.insert(named, image)
+    end
+    return named
+end
+
 --- Images from a subject's gallery page, if the wiki keeps one.
 -- All the candidate page names go into a single request; the ones that do not
 -- exist come back empty rather than as an error, so trying several is cheap.
@@ -154,7 +175,7 @@ function MediaWiki.galleryImages(base, title, patterns, limit, width)
             })
         end
     end
-    return images
+    return preferNamedAfter(images, title)
 end
 
 --- Runs the whole lookup for one wiki.
