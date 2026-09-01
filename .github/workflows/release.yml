@@ -59,4 +59,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: charart.koplugin.zip
+          # The written changelog leads; GitHub appends "What's Changed" and a
+          # full-changelog link under it, the way KOReader's own releases read.
           body_path: RELEASE_NOTES.md
+          generate_release_notes: true
