@@ -93,4 +93,65 @@ function MediaWiki.fileSearch(base, title, limit, width)
     return images
 end
 
+--- Every image used on an article, as a fallback when the file namespace is
+-- thin. Ordered as they appear on the page, so the lead image comes first.
+-- @treturn table list of { url, caption }
+function MediaWiki.pageImages(base, title, limit, width)
+    local response = Http.getJson(apiUrl(base, {
+        action = "query",
+        titles = title,
+        generator = "images",
+        gimlimit = limit,
+        prop = "imageinfo",
+        iiprop = "url",
+        iiurlwidth = width,
+        format = "json",
+    }))
+    local images = {}
+    for _, page in ipairs(rankedPages(response)) do
+        local info = page.imageinfo and page.imageinfo[1]
+        local url = info and (info.thumburl or info.url)
+        if url then
+            table.insert(images, {
+                url = url,
+                caption = MediaWiki.captionFromTitle(page.title),
+            })
+        end
+    end
+    return images
+end
+
+--- Runs the whole lookup for one wiki.
+-- @param ctx table with term, wiki (base URL), limit and width
+-- @treturn table list of { url, caption }, or nil plus an error message
+function MediaWiki.search(ctx)
+    local title = MediaWiki.resolveTitle(ctx.wiki, ctx.term)
+    if not title then
+        return nil, "not on this wiki"
+    end
+
+    local found, seen = {}, {}
+    local function collect(images)
+        for _, image in ipairs(images) do
+            if not seen[image.url] then
+                seen[image.url] = true
+                image.title = title
+                table.insert(found, image)
+                if #found >= ctx.limit then return true end
+            end
+        end
+        return #found >= ctx.limit
+    end
+
+    if collect(MediaWiki.fileSearch(ctx.wiki, title, ctx.limit, ctx.width)) then
+        return found
+    end
+    collect(MediaWiki.pageImages(ctx.wiki, title, ctx.limit, ctx.width))
+
+    if #found == 0 then
+        return nil, "no pictures found"
+    end
+    return found
+end
+
 return MediaWiki
