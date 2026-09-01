@@ -9,6 +9,13 @@ artist credited.
 
 It works the same way the dictionary does. Highlight, tap, read, carry on.
 
+| Highlight a name | See who they are |
+|---|---|
+| ![The highlight menu, with Character Art alongside KOReader's own entries](screenshots/highlight-menu.png) | ![Carl, drawn by a fan, credited under the title](screenshots/viewer.png) |
+
+Two or three pictures are gathered per character, so if the first is not the
+one you wanted, **Previous** and **Next** step through the rest.
+
 ## No AI-generated images. Ever.
 
 Every picture this plugin shows was drawn by a person and uploaded to a wiki by
