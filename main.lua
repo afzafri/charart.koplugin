@@ -146,6 +146,24 @@ function CharArt:askForWiki(on_chosen)
     dialog:onShowKeyboard()
 end
 
+--- Moves the picture the reader settled on last time to the front.
+-- The wiki may have gained better art since, so the rest of the results are
+-- kept and simply follow behind it.
+function CharArt:pinnedFirst(wiki, title, results)
+    local pinned = ArtCache.pinned(wiki, title)
+    if not pinned or not pinned.url then
+        return results
+    end
+
+    local ordered = { pinned }
+    for _, result in ipairs(results) do
+        if result.url ~= pinned.url then
+            table.insert(ordered, result)
+        end
+    end
+    return ordered
+end
+
 function CharArt:lookup(term)
     -- Trapper gives us a "Searching" popup the reader can dismiss, and lets
     -- the network calls below run without freezing the UI.
@@ -182,7 +200,12 @@ function CharArt:lookup(term)
             self:showNothingFound(term, err)
             return
         end
-        Viewer.show(results[1].title or term, results)
+
+        local title = results[1].title or term
+        results = self:pinnedFirst(wiki, title, results)
+        Viewer.show(title, results, function(chosen)
+            ArtCache.pin(wiki, title, results[chosen])
+        end)
     end)
 end
 
