@@ -1,5 +1,9 @@
 # Character Art
 
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/afzafri/charart.koplugin?style=for-the-badge&color=orange)
+![GitHub all releases](https://img.shields.io/github/downloads/afzafri/charart.koplugin/total?style=for-the-badge&color=yellow)
+![Platform](https://img.shields.io/badge/Platform-KOReader-success?style=for-the-badge&logo=koreader)
+
 A KOReader plugin. Highlight a character's name while reading and see art of
 them without leaving the book.
 
@@ -149,12 +153,36 @@ buttons until *Show other items* is enabled.
 
 ## Installing
 
-Copy this directory into KOReader's `plugins` directory, named
-`charart.koplugin`, and restart KOReader.
+Download `charart.koplugin.zip` from the
+[latest release](https://github.com/afzafri/charart.koplugin/releases/latest),
+unzip it into KOReader's `plugins` directory, and restart KOReader. You should
+end up with `plugins/charart.koplugin/main.lua`.
+
+Or clone it, if you would rather track the repository:
 
 ```
-git clone https://github.com/afzafri/charart.koplugin.git
+git clone https://github.com/afzafri/charart.koplugin.git plugins/charart.koplugin
 ```
+
+### Updating
+
+The plugin works with
+[Updates Manager](https://github.com/advokatb/updatesmanager.koplugin), so
+updates arrive on the device instead of over a cable. Add it as a plugin
+repository:
+
+```lua
+{
+    owner = "afzafri",
+    repo = "charart.koplugin",
+    description = "Character Art plugin",
+}
+```
+
+Each release ships a `charart.koplugin.zip` and carries its version in
+`_meta.lua`, which is what Updates Manager compares against to know an update
+exists. What changed in each one is written in
+[CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 
