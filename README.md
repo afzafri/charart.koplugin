@@ -4,7 +4,7 @@ A KOReader plugin. Highlight a character's name while reading and see art of
 them without leaving the book.
 
 Reading *Dungeon Crawler Carl* and can't picture Princess Donut? Highlight her
-name, tap **Character art**, and you get fan art from the book's wiki, with the
+name, tap **Character Art**, and you get fan art from the book's wiki, with the
 artist credited.
 
 It works the same way the dictionary does. Highlight, tap, read, carry on.
@@ -65,7 +65,7 @@ address and it will use it.
 
 ## Getting to it
 
-Highlight a name and tap **Character art** in the popup.
+Highlight a name and tap **Character Art** in the popup.
 
 Two things are worth knowing:
 
@@ -74,10 +74,10 @@ Two things are worth knowing:
   instead, or select more than one word, or bind a gesture (below).
 - **On ZenOS**, the highlight popup is replaced with its own icon row, and
   third-party buttons are hidden by default. Turn on
-  *Highlight / Lookup → Show other items* in ZenOS settings and Character art
+  *Highlight / Lookup → Show other items* in ZenOS settings and Character Art
   appears alongside the Zen buttons.
 
-The plugin also registers a bindable action called **Character art**, so you can
+The plugin also registers a bindable action called **Character Art**, so you can
 put it on a gesture or a hardware key under KOReader's *Taps and gestures*. It
 looks up whatever is selected, or asks for a name if nothing is. This avoids the
 menu entirely and works the same on any KOReader.

@@ -43,7 +43,7 @@ function CharArt:onDispatcherRegisterActions()
     Dispatcher:registerAction("charart_lookup", {
         category = "none",
         event = "CharArtLookup",
-        title = _("Character art"),
+        title = _("Character Art"),
         reader = true,
     })
 end
@@ -69,7 +69,7 @@ end
 function CharArt:askForName()
     local dialog
     dialog = InputDialog:new{
-        title = _("Character art"),
+        title = _("Character Art"),
         description = _("Whose picture are you looking for?"),
         input = "",
         buttons = {{
@@ -130,7 +130,7 @@ function CharArt:addToHighlightDialog()
     -- alphabetical, so "12_character_art" lands just before it.
     self.ui.highlight:addToHighlightDialog("12_character_art", function(this)
         return {
-            text = _("Character art"),
+            text = _("Character Art"),
             callback = function()
                 local term = self:getSelectedText(this)
                 this:onClose(true)
@@ -278,7 +278,7 @@ end
 
 function CharArt:addToMainMenu(menu_items)
     menu_items.charart = {
-        text = _("Character art"),
+        text = _("Character Art"),
         sorting_hint = "more_tools",
         sub_item_table = {
             {
