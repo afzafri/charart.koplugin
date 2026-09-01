@@ -114,6 +114,26 @@ and press **Set as default**. That choice is kept against the character and the
 wiki rather than the book, so a Carl chosen in book one still comes up first in
 book seven.
 
+## Tested on
+
+Everything here was developed and checked on a real device, not an emulator:
+
+| | |
+|---|---|
+| Reader | Onyx BOOX Go 6 (`Go6_2`), 6" e-ink, 1072x1448 at 300dpi |
+| System | Android 11 (SDK 30), arm64-v8a |
+| KOReader | v2026.07.1 |
+| Distribution | ZenOS 3.2.2 |
+
+Nothing in the plugin is specific to that hardware -- it uses KOReader's own
+APIs throughout and touches no device features -- so it should work anywhere
+KOReader runs, including Kobo, Kindle and desktop. Those are simply untested,
+and reports either way are welcome.
+
+The one environment-specific thing worth knowing is the ZenOS interaction
+described above: it replaces both popups with its own, and hides third-party
+buttons until *Show other items* is enabled.
+
 ## Installing
 
 Copy this directory into KOReader's `plugins` directory, named
