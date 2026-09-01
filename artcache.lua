@@ -49,6 +49,20 @@ function ArtCache.remember(wiki, term, found)
     results:flush()
 end
 
+--- Remembers the picture a reader settled on for a character.
+-- Kept against the wiki and the character rather than the book, so a choice
+-- made in the first volume still holds in the sixth.
+function ArtCache.pin(wiki, title, result)
+    results:saveSetting("pin:" .. key(wiki, title), result)
+    results:flush()
+end
+
+--- The picture a reader settled on for a character, if there is one.
+-- @treturn table result, or nil
+function ArtCache.pinned(wiki, title)
+    return results:readSetting("pin:" .. key(wiki, title))
+end
+
 --- Where a picture is kept on disk.
 function ArtCache.imagePath(url)
     return image_dir .. "/" .. md5(url)
