@@ -19,7 +19,9 @@ local ImageFetch = require("imagefetch")
 local ImageViewer = require("ui/widget/imageviewer")
 local Notification = require("ui/widget/notification")
 local UIManager = require("ui/uimanager")
+local ffiUtil = require("ffi/util")
 local _ = require("gettext")
+local T = ffiUtil.template
 
 local CreditedImageViewer = ImageViewer:extend{
     captions = nil,   -- list, parallel to the image list
@@ -116,10 +118,10 @@ function CreditedImageViewer:isPinned()
 end
 
 function CreditedImageViewer:pinLabel()
-    return self:isPinned() and _("★ Kept") or _("Keep this")
+    return self:isPinned() and _("★ Default") or _("Set as default")
 end
 
---- Remembers, or forgets, the picture on screen as this character's.
+--- Makes the picture on screen this character's default, or clears it.
 -- Search results shift as a wiki gains art, and the first hit is not always
 -- the likeness a reader has in mind, so let them nail one down.
 function CreditedImageViewer:togglePin()
@@ -129,11 +131,13 @@ function CreditedImageViewer:togglePin()
     if self:isPinned() then
         self.pinned_url = nil
         self.on_pin(nil)
-        UIManager:show(Notification:new{ text = _("No longer kept.") })
+        UIManager:show(Notification:new{ text = _("No longer the default picture.") })
     else
         self.pinned_url = self.urls and self.urls[current]
         self.on_pin(current)
-        UIManager:show(Notification:new{ text = _("Kept. This picture will come up first.") })
+        UIManager:show(Notification:new{
+            text = T(_("Set as %1's default picture."), self.title_text or _("this character")),
+        })
     end
     self:refreshPinLabel()
 end
