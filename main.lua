@@ -7,6 +7,7 @@ wiki for pictures of that character and shows them in an image viewer.
 @module koplugin.CharArt
 --]]--
 
+local ArtCache = require("artcache")
 local ConfirmBox = require("ui/widget/confirmbox")
 local Device = require("device")
 local InfoMessage = require("ui/widget/infomessage")
@@ -160,13 +161,21 @@ function CharArt:lookup(term)
             return
         end
 
-        Trapper:info(T(_("Looking for pictures of %1…"), term))
-        local results, err = Lookup.run{
-            term = term,
-            wiki = wiki,
-            limit = IMAGE_COUNT,
-            width = IMAGE_WIDTH,
-        }
+        -- A character looked up once tends to be looked up again later, so
+        -- reuse the earlier answer rather than asking the wiki twice.
+        local results, err = ArtCache.recall(wiki, term)
+        if not results then
+            Trapper:info(T(_("Looking for pictures of %1…"), term))
+            results, err = Lookup.run{
+                term = term,
+                wiki = wiki,
+                limit = IMAGE_COUNT,
+                width = IMAGE_WIDTH,
+            }
+            if results then
+                ArtCache.remember(wiki, term, results)
+            end
+        end
         Trapper:clear()
 
         if not results then
