@@ -10,6 +10,7 @@ wiki for pictures of that character and shows them in an image viewer.
 local ArtCache = require("artcache")
 local ConfirmBox = require("ui/widget/confirmbox")
 local Device = require("device")
+local Dispatcher = require("dispatcher")
 local InfoMessage = require("ui/widget/infomessage")
 local InputDialog = require("ui/widget/inputdialog")
 local Lookup = require("lookup")
@@ -33,7 +34,71 @@ local CharArt = WidgetContainer:extend{
     name = "charart",
 }
 
+--- Registers a gesture-bindable action.
+-- The highlight menu is not always reachable: a single-word press opens the
+-- dictionary by default, and some KOReader distributions replace the menu with
+-- one of their own. A bindable action gives readers a way in that does not
+-- depend on any of that, and does not override anything.
+function CharArt:onDispatcherRegisterActions()
+    Dispatcher:registerAction("charart_lookup", {
+        category = "none",
+        event = "CharArtLookup",
+        title = _("Character art"),
+        reader = true,
+    })
+end
+
+--- Looks up whatever is selected, or asks for a name if nothing is.
+function CharArt:onCharArtLookup()
+    local highlight = self.ui and self.ui.highlight
+    local selected = highlight and highlight.selected_text
+    local term = selected and util.cleanupSelectedText(selected.text)
+    if term and term ~= "" then
+        if highlight then
+            highlight:onClose(true)
+        end
+        self:lookup(term)
+    else
+        self:askForName()
+    end
+    return true
+end
+
+--- Asks for a character's name, for looking someone up without finding them
+-- on the page first.
+function CharArt:askForName()
+    local dialog
+    dialog = InputDialog:new{
+        title = _("Character art"),
+        description = _("Whose picture are you looking for?"),
+        input = "",
+        buttons = {{
+            {
+                text = _("Cancel"),
+                id = "close",
+                callback = function()
+                    UIManager:close(dialog)
+                end,
+            },
+            {
+                text = _("Look up"),
+                is_enter_default = true,
+                callback = function()
+                    local term = dialog:getInputText()
+                    UIManager:close(dialog)
+                    if term and term ~= "" then
+                        self:lookup(term)
+                    end
+                end,
+            },
+        }},
+    }
+    UIManager:show(dialog)
+    dialog:onShowKeyboard()
+end
+
 function CharArt:init()
+    self:onDispatcherRegisterActions()
     if self.ui and self.ui.highlight and self.document then
         self:addToHighlightDialog()
     end
