@@ -13,6 +13,8 @@ and only then go looking for pictures of that title.
 local Http = require("http")
 local socket_url = require("socket.url")
 
+local GALLERY_PATTERNS = require("data/gallery_patterns")
+
 local MediaWiki = {
     id = "mediawiki",
     priority = 10,
@@ -121,6 +123,40 @@ function MediaWiki.pageImages(base, title, limit, width)
     return images
 end
 
+--- Images from a subject's gallery page, if the wiki keeps one.
+-- All the candidate page names go into a single request; the ones that do not
+-- exist come back empty rather than as an error, so trying several is cheap.
+-- @treturn table list of { url, caption }
+function MediaWiki.galleryImages(base, title, patterns, limit, width)
+    local titles = {}
+    for _, pattern in ipairs(patterns) do
+        table.insert(titles, (pattern:gsub("{name}", title)))
+    end
+
+    local response = Http.getJson(apiUrl(base, {
+        action = "query",
+        titles = table.concat(titles, "|"),
+        generator = "images",
+        gimlimit = limit,
+        prop = "imageinfo",
+        iiprop = "url",
+        iiurlwidth = width,
+        format = "json",
+    }))
+    local images = {}
+    for _, page in ipairs(rankedPages(response)) do
+        local info = page.imageinfo and page.imageinfo[1]
+        local url = info and (info.thumburl or info.url)
+        if url then
+            table.insert(images, {
+                url = url,
+                caption = MediaWiki.captionFromTitle(page.title),
+            })
+        end
+    end
+    return images
+end
+
 --- Runs the whole lookup for one wiki.
 -- @param ctx table with term, wiki (base URL), limit and width
 -- @treturn table list of { url, caption }, or nil plus an error message
@@ -143,6 +179,9 @@ function MediaWiki.search(ctx)
         return #found >= ctx.limit
     end
 
+    if collect(MediaWiki.galleryImages(ctx.wiki, title, GALLERY_PATTERNS, ctx.limit, ctx.width)) then
+        return found
+    end
     if collect(MediaWiki.fileSearch(ctx.wiki, title, ctx.limit, ctx.width)) then
         return found
     end
