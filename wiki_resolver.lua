@@ -83,6 +83,32 @@ function WikiResolver.slugCandidates(props)
     return candidates
 end
 
+--- Makes sense of whatever the reader typed into the wiki box.
+-- People paste the address of the page they were reading, or type just the
+-- Fandom name, so accept both and cut back to the wiki's root.
+-- @treturn string wiki base URL, or nil if the input was empty
+function WikiResolver.normalize(input)
+    local text = (input or ""):gsub("^%s*(.-)%s*$", "%1")
+    if text == "" then
+        return nil
+    end
+
+    if not text:find("://", 1, true) then
+        -- A bare word is a Fandom name: "dungeon-crawler-carl".
+        if not text:find("%.") then
+            return "https://" .. text .. ".fandom.com"
+        end
+        text = "https://" .. text
+    end
+
+    -- Keep scheme and host, drop /wiki/Some_Page and any trailing slash.
+    local scheme, host = text:match("^(https?://)([^/]+)")
+    if not scheme or not host then
+        return nil
+    end
+    return scheme .. host
+end
+
 --- Checks whether a Fandom wiki actually exists at a slug.
 -- @treturn string wiki base URL, or nil
 function WikiResolver.probe(slug)
