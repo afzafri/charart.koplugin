@@ -6,19 +6,25 @@ RenderImage, which picks the right decoder by sniffing the data rather than
 trusting the file extension.
 --]]--
 
+local ArtCache = require("artcache")
 local Http = require("http")
 local RenderImage = require("ui/renderimage")
 local logger = require("logger")
 
 local ImageFetch = {}
 
---- Downloads and decodes one picture.
+--- Downloads and decodes one picture, reusing the copy on disk if we have it.
 -- @string url
 -- @treturn BlitBuffer the decoded image, or nil plus an error message
 function ImageFetch.fetch(url)
-    local data, err = Http.get(url)
+    local data = ArtCache.readImage(url)
     if not data then
-        return nil, err
+        local err
+        data, err = Http.get(url)
+        if not data then
+            return nil, err
+        end
+        ArtCache.writeImage(url, data)
     end
 
     local ok, image = pcall(RenderImage.renderImageData, RenderImage, data, #data)
