@@ -65,7 +65,7 @@ return {
         -- ctx.limit  how many pictures to return
         -- ctx.width  how wide they should be
         return {
-            { url = "https://…/picture.jpg", caption = "Carl by Kippin21" },
+            { url = "https://…/picture.jpg", caption = "Carl, by the artist named on the wiki" },
         }
     end,
 }

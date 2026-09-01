@@ -39,9 +39,8 @@ that wiki's image host. That is the whole network surface.
 
 This is deliberate. The art belongs to the people who drew it, and a plugin
 built to show you fan art has no business laundering it through a model. The
-credit under each picture is whatever the uploader wrote on the wiki -- "Art by
-@hunnydohandmade, Instagram" -- falling back to the filename when they wrote
-nothing.
+credit under each picture is whatever the uploader wrote on the wiki, falling
+back to the filename when they wrote nothing.
 
 ### What it cannot promise
 

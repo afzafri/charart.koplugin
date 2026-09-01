@@ -65,7 +65,7 @@ function MediaWiki.filePageUrl(base, file_title)
     return base .. "/wiki/" .. socket_url.escape(file_title:gsub(" ", "_"))
 end
 
---- Turns "File:Carl by Kippin21.jpg" into "Carl by Kippin21".
+--- Turns "File:Carl by Someone.jpg" into "Carl by Someone".
 -- Wiki uploaders habitually name files after the subject and the artist, which
 -- makes the filename the most reliable credit we have.
 function MediaWiki.captionFromTitle(title)
@@ -256,9 +256,9 @@ function MediaWiki.galleryImages(base, title, patterns, limit, width)
 end
 
 --- Reduces a file page's wikitext to a line worth showing.
--- Uploaders write the real credit here -- "Art by @hunnydohandmade, Instagram"
--- -- which beats a filename every time. What surrounds it is category links
--- and templates, so those come out.
+-- Uploaders write the real credit here -- who drew it and where they post --
+-- which beats a filename every time. What surrounds it is category links and
+-- templates, so those come out.
 local function cleanDescription(text)
     text = text:gsub("%[%[Category:[^%]]*%]%]", "")
     text = text:gsub("==+[^=]*==+", "")
