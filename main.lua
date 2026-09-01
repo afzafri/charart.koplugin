@@ -7,6 +7,8 @@ wiki for pictures of that character and shows them in an image viewer.
 @module koplugin.CharArt
 --]]--
 
+local ConfirmBox = require("ui/widget/confirmbox")
+local Device = require("device")
 local InfoMessage = require("ui/widget/infomessage")
 local InputDialog = require("ui/widget/inputdialog")
 local Lookup = require("lookup")
@@ -16,6 +18,7 @@ local Viewer = require("viewer")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local WikiResolver = require("wiki_resolver")
 local ffiUtil = require("ffi/util")
+local socket_url = require("socket.url")
 local util = require("util")
 local _ = require("gettext")
 local T = ffiUtil.template
@@ -83,6 +86,31 @@ function CharArt:getWiki()
     return found
 end
 
+--- Tells the reader we came up empty, and offers the web as a last resort.
+-- Plenty of books have no wiki at all, and on a device that can open a browser
+-- handing the search over is more use than an apology.
+function CharArt:showNothingFound(term, err)
+    local message = T(_("No picture found for %1."), term)
+    if err then
+        message = message .. "\n\n" .. err
+    end
+
+    if not Device:canOpenLink() then
+        UIManager:show(InfoMessage:new{ text = message })
+        return
+    end
+
+    local book = self.ui.doc_props and (self.ui.doc_props.series or self.ui.doc_props.title) or ""
+    local query = socket_url.escape(book .. " " .. term .. " art")
+    UIManager:show(ConfirmBox:new{
+        text = message,
+        ok_text = _("Search the web"),
+        ok_callback = function()
+            Device:openLink("https://duckduckgo.com/?iax=images&ia=images&q=" .. query)
+        end,
+    })
+end
+
 --- Asks which wiki covers this book, prefilled with our best guess.
 function CharArt:askForWiki(on_chosen)
     local guess = WikiResolver.slugCandidates(self.ui.doc_props)[1] or ""
@@ -142,9 +170,7 @@ function CharArt:lookup(term)
         Trapper:clear()
 
         if not results then
-            UIManager:show(InfoMessage:new{
-                text = T(_("No picture found for %1.\n\n%2"), term, err or ""),
-            })
+            self:showNothingFound(term, err)
             return
         end
         Viewer.show(results[1].title or term, results)
