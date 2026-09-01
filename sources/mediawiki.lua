@@ -181,6 +181,7 @@ function MediaWiki.fileSearch(base, title, limit, width)
             table.insert(images, {
                 url = url,
                 caption = MediaWiki.captionFromTitle(page.title),
+                file_title = page.title,
                 page_url = MediaWiki.filePageUrl(base, page.title),
             })
         end
@@ -210,6 +211,7 @@ function MediaWiki.pageImages(base, title, limit, width)
             table.insert(images, {
                 url = url,
                 caption = MediaWiki.captionFromTitle(page.title),
+                file_title = page.title,
                 page_url = MediaWiki.filePageUrl(base, page.title),
             })
         end
@@ -245,11 +247,79 @@ function MediaWiki.galleryImages(base, title, patterns, limit, width)
             table.insert(images, {
                 url = url,
                 caption = MediaWiki.captionFromTitle(page.title),
+                file_title = page.title,
                 page_url = MediaWiki.filePageUrl(base, page.title),
             })
         end
     end
     return preferNamedAfter(images, title)
+end
+
+--- Reduces a file page's wikitext to a line worth showing.
+-- Uploaders write the real credit here -- "Art by @hunnydohandmade, Instagram"
+-- -- which beats a filename every time. What surrounds it is category links
+-- and templates, so those come out.
+local function cleanDescription(text)
+    text = text:gsub("%[%[Category:[^%]]*%]%]", "")
+    text = text:gsub("==+[^=]*==+", "")
+    text = text:gsub("{|.-|}", "")
+    text = text:gsub("{{[^}]*}}", "")
+    text = text:gsub("%[%[[^%]|]*|([^%]]*)%]%]", "%1")
+    text = text:gsub("%[%[([^%]]*)%]%]", "%1")
+    text = text:gsub("%[%S+%s+([^%]]*)%]", "%1")
+    text = text:gsub("<[^>]->", "")
+    text = text:gsub("%'%'+", "")
+    text = text:gsub("%s+", " ")
+    text = text:gsub("^%s*(.-)%s*$", "%1")
+
+    if text == "" then
+        return nil
+    end
+    if #text > 140 then
+        text = text:sub(1, 137) .. "…"
+    end
+    return text
+end
+
+--- Replaces captions with what the uploader wrote about each picture, where
+-- they wrote anything. One request covers every picture we are about to show.
+function MediaWiki.describe(base, images)
+    local titles, by_title = {}, {}
+    for _, image in ipairs(images) do
+        if image.file_title and not by_title[image.file_title] then
+            table.insert(titles, image.file_title)
+            by_title[image.file_title] = image
+        end
+    end
+    if #titles == 0 then
+        return
+    end
+
+    local response = Http.getJson(apiUrl(base, {
+        action = "query",
+        titles = table.concat(titles, "|"),
+        prop = "revisions",
+        rvprop = "content",
+        rvslots = "main",
+        format = "json",
+    }))
+    local pages = response and response.query and response.query.pages
+    if not pages then
+        return
+    end
+
+    for _, page in pairs(pages) do
+        local image = by_title[page.title]
+        local revision = page.revisions and page.revisions[1]
+        local main = revision and revision.slots and revision.slots.main
+        local text = main and main["*"]
+        if image and text then
+            local description = cleanDescription(text)
+            if description then
+                image.caption = description
+            end
+        end
+    end
 end
 
 --- Runs the whole lookup for one wiki.
@@ -287,24 +357,31 @@ function MediaWiki.search(ctx)
         collect({{
             url = lead_image,
             caption = lead_name or title,
+            file_title = lead_name and ("File:" .. lead_name) or nil,
             page_url = lead_name
                 and MediaWiki.filePageUrl(ctx.wiki, "File:" .. lead_name)
                 or nil,
         }})
     end
 
-    if collect(MediaWiki.galleryImages(ctx.wiki, title, GALLERY_PATTERNS, ctx.limit, ctx.width)) then
+    -- Every way out of the gathering below goes through here, so the
+    -- descriptions are never skipped by an early return.
+    local function finish()
+        if #found == 0 then
+            return nil, "no pictures found"
+        end
+        MediaWiki.describe(ctx.wiki, found)
         return found
+    end
+
+    if collect(MediaWiki.galleryImages(ctx.wiki, title, GALLERY_PATTERNS, ctx.limit, ctx.width)) then
+        return finish()
     end
     if collect(MediaWiki.fileSearch(ctx.wiki, title, ctx.limit, ctx.width)) then
-        return found
+        return finish()
     end
     collect(MediaWiki.pageImages(ctx.wiki, title, ctx.limit, ctx.width))
-
-    if #found == 0 then
-        return nil, "no pictures found"
-    end
-    return found
+    return finish()
 end
 
 return MediaWiki
