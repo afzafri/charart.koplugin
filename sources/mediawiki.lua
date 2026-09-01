@@ -65,7 +65,10 @@ function MediaWiki.resolveTitle(base, term)
         generator = "search",
         gsrnamespace = 0,
         gsrsearch = term,
-        gsrlimit = 5,
+        gsrlimit = 10,
+        prop = "pageimages",
+        piprop = "thumbnail",
+        pithumbsize = 200,
         format = "json",
     }))
     local candidates = rankedPages(response)
@@ -74,18 +77,41 @@ function MediaWiki.resolveTitle(base, term)
     end
 
     local needle = term:lower()
-    for _, page in ipairs(candidates) do
-        if page.title:lower() == needle then
-            return page.title
-        end
-    end
-    for _, page in ipairs(candidates) do
+    local best, best_score
+    for rank, page in ipairs(candidates) do
         local title = page.title:lower()
-        if title:find(needle, 1, true) or needle:find(title, 1, true) then
-            return page.title
+
+        -- How closely the title matches what was highlighted. A title that
+        -- begins with the name is usually the character's own page, while one
+        -- that merely mentions it is usually a group or an event: searching
+        -- this wiki for "Katia" offers "Team Katia" before "Katia Grim".
+        local score
+        if title == needle then
+            score = 500
+        elseif title:sub(1, #needle) == needle then
+            score = 400
+        elseif needle:sub(1, #title) == title then
+            score = 300
+        elseif title:find(needle, 1, true) then
+            score = 200
+        else
+            score = 100
+        end
+
+        -- A page with a picture on it is more likely to be about someone than
+        -- a page without one.
+        if page.thumbnail then
+            score = score + 50
+        end
+
+        -- Keep the wiki's own ranking as the tie-breaker.
+        score = score - rank
+
+        if not best_score or score > best_score then
+            best, best_score = page.title, score
         end
     end
-    return candidates[1].title
+    return best
 end
 
 --- Puts pictures whose filename mentions the subject first.
