@@ -90,8 +90,8 @@ dictionary is showing. Nothing of KOReader's own is replaced to do this; both
 the highlight menu and the dictionary popup have a documented way for plugins
 to add a button.
 
-Selecting more than one word opens the highlight menu instead, where Character
-Art sits with KOReader's own entries:
+Holding for three seconds, or selecting more than one word, opens the highlight
+menu instead, where Character Art sits with KOReader's own entries:
 
 ![The highlight menu, with Character Art alongside Select, Copy and Add note](screenshots/highlight-menu.png)
 
