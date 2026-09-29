@@ -27,10 +27,16 @@ local logger = require("logger")
 local socket_url = require("socket.url")
 local util = require("util")
 local _ = require("gettext")
+local N_ = _.ngettext
 local T = ffiUtil.template
 
 -- How many pictures to gather, and how wide to ask the wiki to serve them.
-local IMAGE_COUNT = 3
+-- Asking for a dozen costs exactly what asking for three costs: the same three
+-- requests, with more rows in the reply. Only the picture on screen is ever
+-- downloaded, so the rest sit there costing nothing until the reader pages to
+-- them. That is cheaper than a "load more" button, which would spend a round
+-- trip to discover there is usually nothing more to load.
+local IMAGE_COUNT = 12
 local IMAGE_WIDTH = 800
 
 local CharArt = WidgetContainer:extend{
@@ -446,7 +452,12 @@ function CharArt:lookup(term)
         -- message up until it is here. Otherwise the screen sits unchanged for
         -- a few seconds and it looks like nothing happened. The rest are still
         -- fetched only if the reader swipes to them.
-        Trapper:info(T(_("Fetching a picture of %1…"), title))
+        -- Only the first picture is downloaded here; the rest wait until the
+        -- reader pages to them. Saying how many turned up is both truthful
+        -- about that and a hint that there is more than this one to see.
+        Trapper:info(T(N_("Found a picture of %1. Loading it…",
+                          "Found %2 pictures of %1. Loading the first…", #results),
+            title, #results))
         ImageFetch.prefetch(results[1].url)
         Trapper:clear()
 
