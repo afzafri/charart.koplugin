@@ -8,6 +8,7 @@ wiki for pictures of that character and shows them in an image viewer.
 --]]--
 
 local ArtCache = require("artcache")
+local ButtonDialog = require("ui/widget/buttondialog")
 local ConfirmBox = require("ui/widget/confirmbox")
 local Device = require("device")
 local Dispatcher = require("dispatcher")
@@ -171,16 +172,121 @@ function CharArt:addToHighlightDialog()
 end
 
 --- The wiki to search for this book, remembered per book once we know it.
+--- What we know about the book, including the name of the file it came from.
+-- Metadata is often thin or wrong, while the filename usually spells out the
+-- series, so both are worth searching.
+function CharArt:bookInfo()
+    local props = self.ui.doc_props or {}
+    return {
+        title = props.title,
+        series = props.series,
+        authors = props.authors,
+        filename = self.ui.document and self.ui.document.file or nil,
+    }
+end
+
+--- The wiki for this book, if we already know it.
+-- Only settled answers: one the reader picked before, or one from the bundled
+-- list. Guessing happens in front of the reader instead, in chooseWiki.
 function CharArt:getWiki()
     local saved = self.ui.doc_settings:readSetting("charart_wiki")
     if saved then
         return saved
     end
-    local found, kind = WikiResolver.resolve(self.ui.doc_props)
-    if found then
-        self.ui.doc_settings:saveSetting("charart_wiki", found)
+    local known = WikiResolver.fromKnownWikis(self:bookInfo())
+    if known then
+        self.ui.doc_settings:saveSetting("charart_wiki", known)
     end
-    return found, kind
+    return known
+end
+
+--- Remembers a wiki for this book and carries on.
+function CharArt:useWiki(wiki, on_chosen)
+    self.ui.doc_settings:saveSetting("charart_wiki", wiki)
+    if on_chosen then
+        on_chosen(wiki)
+    end
+end
+
+--- Searches for wikis covering this book and lets the reader pick one.
+-- A book we have never seen gets this once, like setting it up. The guessing
+-- still does the work -- searching, discarding aliases, putting the busiest
+-- first -- but a name can look right and be wrong, and the reader can tell at
+-- a glance which wiki is about the book they are holding.
+function CharArt:chooseWiki(on_chosen)
+    Trapper:wrap(function()
+        Trapper:info(_("Looking for a wiki for this book…"))
+
+        -- Anything we already know goes in front of the guesses. Added one at
+        -- a time: a table literal holding a nil ends an ipairs walk there, and
+        -- the missing one would be the bundled wiki, which is the case that
+        -- matters most.
+        local seeds, seeded = {}, {}
+        local function seed(base)
+            if base and not seeded[base] then
+                seeded[base] = true
+                table.insert(seeds, base)
+            end
+        end
+        seed(self.ui.doc_settings:readSetting("charart_wiki"))
+        seed(WikiResolver.fromKnownWikis(self:bookInfo()))
+
+        local found, kind = WikiResolver.findCandidates(self:bookInfo(), seeds)
+        Trapper:clear()
+
+        if #found == 0 then
+            if kind == Http.OFFLINE then
+                self:showOffline()
+            else
+                self:askForWiki(on_chosen)
+            end
+            return
+        end
+
+        local dialog
+        local buttons = {}
+        -- Not "_" for the index: that shadows gettext inside the loop.
+        for index, candidate in ipairs(found) do
+            table.insert(buttons, {{
+                text = T(_("%1  ·  %2 articles"), candidate.name, candidate.articles),
+                align = "left",
+                callback = function()
+                    UIManager:close(dialog)
+                    self:useWiki(candidate.url, on_chosen)
+                end,
+                hold_callback = function()
+                    if Device:canOpenLink() then
+                        Device:openLink(candidate.url)
+                    end
+                end,
+            }})
+        end
+
+        table.insert(buttons, {{
+            text = _("Enter a link or name instead…"),
+            align = "left",
+            callback = function()
+                UIManager:close(dialog)
+                self:askForWiki(on_chosen)
+            end,
+        }})
+        table.insert(buttons, {{
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(dialog)
+            end,
+        }})
+
+        local hint = Device:canOpenLink()
+            and _("Which wiki covers this book?\nTap one to use it, or hold to open it in a browser first.")
+            or _("Which wiki covers this book?")
+        dialog = ButtonDialog:new{
+            title = hint,
+            title_align = "center",
+            buttons = buttons,
+        }
+        UIManager:show(dialog)
+    end)
 end
 
 --- Says the wiki could not be reached, rather than pretending we looked.
@@ -297,21 +403,13 @@ function CharArt:lookup(term)
     -- Trapper gives us a "Searching" popup the reader can dismiss, and lets
     -- the network calls below run without freezing the UI.
     Trapper:wrap(function()
-        Trapper:info(_("Finding this book's wiki…"))
-        local wiki, wiki_err = self:getWiki()
-        Trapper:clear()
+        local wiki = self:getWiki()
         if not wiki then
-            if wiki_err == Http.OFFLINE then
-                -- We never got off the device, so we do not know whether this
-                -- book has a wiki. Asking them to name one would be pretending
-                -- we had looked.
-                self:showOffline()
-            else
-                -- Ask, then start over once we have an answer.
-                self:askForWiki(function()
-                    self:lookup(term)
-                end)
-            end
+            -- First time for this book: search, show what turned up, and pick
+            -- up the lookup once there is a wiki to search.
+            self:chooseWiki(function()
+                self:lookup(term)
+            end)
             return
         end
 
@@ -361,7 +459,7 @@ end
 function CharArt:addToMainMenu(menu_items)
     menu_items.charart = {
         text = _("Character Art"),
-        sorting_hint = "more_tools",
+        sorting_hint = "tools",
         sub_item_table = {
             {
                 -- Also the way to correct a wrong guess, which is why it shows
@@ -378,7 +476,7 @@ function CharArt:addToMainMenu(menu_items)
                 end,
                 keep_menu_open = true,
                 callback = function()
-                    self:askForWiki(function() end)
+                    self:chooseWiki(function() end)
                 end,
             },
             {
