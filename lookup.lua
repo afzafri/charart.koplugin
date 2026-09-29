@@ -56,18 +56,21 @@ Lookup.sources = loadSources()
 
 --- Asks each source for pictures of ctx.term, stopping at the first that has
 -- any.
--- @treturn table results, or nil plus a message explaining the last failure
+-- @treturn table results, or nil plus a message and the kind of failure
 function Lookup.run(ctx)
-    local last_error = "no sources available"
+    local last_error, last_kind = "no sources available", nil
     for _, source in ipairs(Lookup.sources) do
-        local results, err = source.search(ctx)
+        local results, err, kind = source.search(ctx)
         if results and #results > 0 then
             return results
         end
         last_error = err or last_error
+        -- A source that could not be reached outranks one that simply had
+        -- nothing, since that is the more useful thing to tell the reader.
+        last_kind = kind or last_kind
         logger.dbg("charart:", source.id, "found nothing:", last_error)
     end
-    return nil, last_error
+    return nil, last_error, last_kind
 end
 
 return Lookup

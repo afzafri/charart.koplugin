@@ -20,6 +20,7 @@ local UIManager = require("ui/uimanager")
 local Viewer = require("viewer")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local WikiResolver = require("wiki_resolver")
+local Http = require("http")
 local ffiUtil = require("ffi/util")
 local logger = require("logger")
 local socket_url = require("socket.url")
@@ -175,11 +176,19 @@ function CharArt:getWiki()
     if saved then
         return saved
     end
-    local found = WikiResolver.resolve(self.ui.doc_props)
+    local found, kind = WikiResolver.resolve(self.ui.doc_props)
     if found then
         self.ui.doc_settings:saveSetting("charart_wiki", found)
     end
-    return found
+    return found, kind
+end
+
+--- Says the wiki could not be reached, rather than pretending we looked.
+-- Offering a web search here would be no use: that needs the network too.
+function CharArt:showOffline()
+    UIManager:show(InfoMessage:new{
+        text = _("Could not reach the wiki.\n\nCharacter Art needs a network connection to fetch pictures. Once a picture has been shown it is kept on the device, and looking that character up again works offline."),
+    })
 end
 
 --- Tells the reader we came up empty, and offers the web as a last resort.
@@ -264,22 +273,29 @@ function CharArt:lookup(term)
     -- the network calls below run without freezing the UI.
     Trapper:wrap(function()
         Trapper:info(_("Finding this book's wiki…"))
-        local wiki = self:getWiki()
+        local wiki, wiki_err = self:getWiki()
         Trapper:clear()
         if not wiki then
-            -- Ask, then start over once we have an answer.
-            self:askForWiki(function()
-                self:lookup(term)
-            end)
+            if wiki_err == Http.OFFLINE then
+                -- We never got off the device, so we do not know whether this
+                -- book has a wiki. Asking them to name one would be pretending
+                -- we had looked.
+                self:showOffline()
+            else
+                -- Ask, then start over once we have an answer.
+                self:askForWiki(function()
+                    self:lookup(term)
+                end)
+            end
             return
         end
 
         -- A character looked up once tends to be looked up again later, so
         -- reuse the earlier answer rather than asking the wiki twice.
-        local results, err = ArtCache.recall(wiki, term)
+        local results, err, kind = ArtCache.recall(wiki, term)
         if not results then
             Trapper:info(T(_("Looking for pictures of %1…"), term))
-            results, err = Lookup.run{
+            results, err, kind = Lookup.run{
                 term = term,
                 wiki = wiki,
                 limit = IMAGE_COUNT,
@@ -291,7 +307,11 @@ function CharArt:lookup(term)
         end
         if not results then
             Trapper:clear()
-            self:showNothingFound(term, err)
+            if kind == Http.OFFLINE then
+                self:showOffline()
+            else
+                self:showNothingFound(term, err)
+            end
             return
         end
 

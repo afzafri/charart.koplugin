@@ -110,29 +110,37 @@ function WikiResolver.normalize(input)
 end
 
 --- Checks whether a Fandom wiki actually exists at a slug.
--- @treturn string wiki base URL, or nil
+-- @treturn string wiki base URL, or nil plus the kind of failure
 function WikiResolver.probe(slug)
     local base = "https://" .. slug .. ".fandom.com"
-    local body = Http.get(base .. "/api.php?action=query&meta=siteinfo&format=json")
-    return body and base or nil
+    local body, _, kind = Http.get(base .. "/api.php?action=query&meta=siteinfo&format=json")
+    if body then
+        return base
+    end
+    return nil, kind
 end
 
 --- Finds the wiki for a book: the known list first, then guessing.
--- Returns nil when neither works, which is the caller's cue to ask the reader.
--- @treturn string wiki base URL, or nil
+-- Returns nil when neither works, which is the caller's cue to ask the reader
+-- -- unless the guessing never got off the device, in which case asking them
+-- to name a wiki would be answering a question they did not fail.
+-- @treturn string wiki base URL, or nil plus the kind of failure
 function WikiResolver.resolve(props)
     local known = WikiResolver.fromKnownWikis(props)
     if known then
         return known
     end
+
+    local last_kind
     for index, slug in ipairs(WikiResolver.slugCandidates(props)) do
         if index > MAX_PROBES then break end
-        local found = WikiResolver.probe(slug)
+        local found, kind = WikiResolver.probe(slug)
         if found then
             return found
         end
+        last_kind = kind or last_kind
     end
-    return nil
+    return nil, last_kind
 end
 
 return WikiResolver

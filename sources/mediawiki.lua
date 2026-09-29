@@ -79,9 +79,10 @@ end
 -- the clan page mentions the words more often. So we look at several results
 -- and prefer one whose title matches what was highlighted, falling back to the
 -- wiki's own ranking when nothing matches by name.
--- @treturn string title, plus the article's lead image URL if it has one
+-- @treturn string title and the article's lead image URL, or nil plus an
+-- error message and its kind
 function MediaWiki.resolveTitle(base, term, width)
-    local response = Http.getJson(apiUrl(base, {
+    local response, err, kind = Http.getJson(apiUrl(base, {
         action = "query",
         generator = "search",
         gsrnamespace = 0,
@@ -92,9 +93,15 @@ function MediaWiki.resolveTitle(base, term, width)
         pithumbsize = width or 200,
         format = "json",
     }))
+    -- A request that never arrived is not the same as a wiki with nothing to
+    -- say, and the reader deserves to be told which happened.
+    if not response then
+        return nil, err, kind
+    end
+
     local candidates = rankedPages(response)
     if #candidates == 0 then
-        return nil
+        return nil, "not on this wiki"
     end
 
     local needle = term:lower()
@@ -326,10 +333,13 @@ end
 -- @param ctx table with term, wiki (base URL), limit and width
 -- @treturn table list of { url, caption }, or nil plus an error message
 function MediaWiki.search(ctx)
-    local title, lead_image = MediaWiki.resolveTitle(ctx.wiki, ctx.term, ctx.width)
+    -- The second value is the lead image when a title was found, and the
+    -- reason there is no title otherwise.
+    local title, lead_or_reason, kind = MediaWiki.resolveTitle(ctx.wiki, ctx.term, ctx.width)
     if not title then
-        return nil, "not on this wiki"
+        return nil, lead_or_reason or "not on this wiki", kind
     end
+    local lead_image = lead_or_reason
 
     local found, seen = {}, {}
     local function collect(images)
