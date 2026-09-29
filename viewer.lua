@@ -26,6 +26,7 @@ local _ = require("gettext")
 local T = ffiUtil.template
 
 local CreditedImageViewer = ImageViewer:extend{
+    subject = nil,    -- who the pictures are of
     captions = nil,   -- list, parallel to the image list
     urls = nil,       -- ditto, so a picture can be identified when kept
     page_urls = nil,  -- ditto, the wiki page each picture came from
@@ -33,6 +34,15 @@ local CreditedImageViewer = ImageViewer:extend{
 }
 
 function CreditedImageViewer:init()
+    -- Before the parent runs, which is when the title bar gets built: the
+    -- first picture should already say "1 of 12" rather than gaining the
+    -- count only once the reader pages on.
+    local total = self.images_list_nb
+        or (type(self.image) == "table" and #self.image)
+        or 1
+    if self.subject and total > 1 then
+        self.title_text = T(_("%1  ·  %2 of %3"), self.subject, 1, total)
+    end
     ImageViewer.init(self)
     if (self._images_list_nb or 1) > 1 then
         self:_addPagingButtons()
@@ -166,8 +176,18 @@ end
 -- TitleBar:setSubTitle quietly does nothing in that case -- it opens with
 -- "if self.subtitle_widget and not self.subtitle_multilines". So the bar has
 -- to be built again rather than edited.
-function CreditedImageViewer:setCaption(caption)
+--- "Carl  ·  3 of 12", so the reader can see there is more to page through.
+function CreditedImageViewer:positionTitle(image_num)
+    local total = self._images_list_nb or 1
+    if total < 2 then
+        return self.subject or self.title_text
+    end
+    return T(_("%1  ·  %2 of %3"), self.subject or "", image_num or 1, total)
+end
+
+function CreditedImageViewer:setCaption(caption, image_num)
     self.caption = caption
+    self.title_text = self:positionTitle(image_num)
     if not (self.with_title_bar and self.captioned_title_bar) then
         return
     end
@@ -194,7 +214,7 @@ end
 function CreditedImageViewer:switchToImageNum(image_num)
     local caption = self.captions and self.captions[image_num]
     if caption then
-        self:setCaption(caption)
+        self:setCaption(caption, image_num)
     end
     ImageViewer.switchToImageNum(self, image_num)
     -- After the switch, so both describe the picture now on screen.
@@ -236,6 +256,7 @@ function Viewer.show(title, results, on_pin, pinned_url)
         pinned_url = pinned_url,
         caption = captions[1],
         on_pin = on_pin,
+        subject = title,
         title_text = title,
         with_title_bar = true,
         buttons_visible = true,
