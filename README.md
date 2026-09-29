@@ -85,16 +85,14 @@ on the wiki.
 Character Art needs to know which wiki covers the book. Usually it works this
 out on its own, from the book's title, series, author and filename.
 
-If it cannot, it searches and shows you what it found:
+If it cannot, it searches and shows you what it found, with each wiki's name
+and how many articles it has:
 
-```
-Which wiki covers this book?
-Tap one to use it, or hold to open it in a browser first.
+![The wiki chooser, listing a wiki with its article count, plus a manual entry option](screenshots/wiki-chooser.png)
 
-  A Wheel of Time Wiki      ·  6563 articles
-  The Wheel of Time Wiki    ·   760 articles
-  Enter a link or name instead…
-```
+Sometimes that is one wiki, sometimes several — Fandom is full of half-finished
+duplicates, and a series can have a separate wiki for its television
+adaptation, so the article counts are there to tell them apart.
 
 Hold any of them to open it in your browser and check before choosing. Your
 choice is remembered for that book, and you can change it later under
