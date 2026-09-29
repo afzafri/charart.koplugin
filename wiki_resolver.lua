@@ -109,12 +109,22 @@ function WikiResolver.normalize(input)
     return scheme .. host
 end
 
+--- Asks a wiki whether it is there and speaks MediaWiki.
+-- @treturn boolean true, or false plus the kind of failure
+function WikiResolver.verify(base)
+    local body, _, kind = Http.get(base .. "/api.php?action=query&meta=siteinfo&format=json")
+    if body then
+        return true
+    end
+    return false, kind
+end
+
 --- Checks whether a Fandom wiki actually exists at a slug.
 -- @treturn string wiki base URL, or nil plus the kind of failure
 function WikiResolver.probe(slug)
     local base = "https://" .. slug .. ".fandom.com"
-    local body, _, kind = Http.get(base .. "/api.php?action=query&meta=siteinfo&format=json")
-    if body then
+    local ok, kind = WikiResolver.verify(base)
+    if ok then
         return base
     end
     return nil, kind

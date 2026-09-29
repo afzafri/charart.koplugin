@@ -216,14 +216,18 @@ function CharArt:showNothingFound(term, err)
     })
 end
 
---- Asks which wiki covers this book, prefilled with our best guess.
+--- Asks which wiki covers this book, and checks the answer before keeping it.
+-- Not prefilled with a guess: we only get here because the guesses failed, and
+-- offering a known-bad one under a "Use this" button invites the reader to
+-- save it. When they already have a wiki set, that is worth showing, since
+-- this is also how it gets corrected.
 function CharArt:askForWiki(on_chosen)
-    local guess = WikiResolver.slugCandidates(self.ui.doc_props)[1] or ""
+    local current = self.document and self.ui.doc_settings:readSetting("charart_wiki")
     local dialog
     dialog = InputDialog:new{
         title = _("Wiki for this book"),
-        description = _("The address of a wiki covering this book, or just its Fandom name."),
-        input = guess,
+        description = _("Address of a wiki covering this book, or just its Fandom name, like dungeon-crawler-carl."),
+        input = current or "",
         buttons = {{
             {
                 text = _("Cancel"),
@@ -237,11 +241,32 @@ function CharArt:askForWiki(on_chosen)
                 is_enter_default = true,
                 callback = function()
                     local wiki = WikiResolver.normalize(dialog:getInputText())
-                    UIManager:close(dialog)
-                    if wiki then
-                        self.ui.doc_settings:saveSetting("charart_wiki", wiki)
-                        on_chosen(wiki)
+                    if not wiki then
+                        return
                     end
+                    -- Check it before saving it. A typo kept silently would
+                    -- have every later lookup reporting that the character is
+                    -- not on the wiki, which sends the reader looking for the
+                    -- wrong problem.
+                    Trapper:wrap(function()
+                        Trapper:info(T(_("Checking %1…"), wiki:gsub("^https?://", "")))
+                        local ok, kind = WikiResolver.verify(wiki)
+                        Trapper:clear()
+
+                        if ok then
+                            UIManager:close(dialog)
+                            self.ui.doc_settings:saveSetting("charart_wiki", wiki)
+                            on_chosen(wiki)
+                        elseif kind == Http.OFFLINE then
+                            self:showOffline()
+                        else
+                            -- Left open so the address can be corrected.
+                            UIManager:show(InfoMessage:new{
+                                text = T(_("%1 did not answer.\n\nCheck the address, or open the wiki in a browser to see what it is called."),
+                                    wiki:gsub("^https?://", "")),
+                            })
+                        end
+                    end)
                 end,
             },
         }},
