@@ -115,17 +115,13 @@ before being saved, so a typo tells you straight away.
 
 ## Updating
 
-Character Art works with
-[Updates Manager](https://github.com/advokatb/updatesmanager.koplugin), so
-updates arrive on the device. Add it as a plugin repository:
+Character Art is in
+[Updates Manager](https://github.com/advokatb/updatesmanager.koplugin)'s
+built-in list, so there is nothing to set up. Open *Tools → Updates Manager →
+Plugins* and it will offer new versions when they are released.
 
-```lua
-{
-    owner = "afzafri",
-    repo = "charart.koplugin",
-    description = "Character Art plugin",
-}
-```
+It is also listed in the **AppStore** and **Storefront** plugin browsers, and in
+[koreader/contrib](https://github.com/koreader/contrib).
 
 What changed in each version is in [CHANGELOG.md](CHANGELOG.md).
 
