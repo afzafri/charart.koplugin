@@ -35,7 +35,7 @@ jobs:
           tag_version="${GITHUB_REF_NAME#v}"
           awk -v ver="$tag_version" '
             $0 ~ "^## \\[" ver "\\]" { found = 1; next }
-            found && /^## \\[/ { exit }
+            found && /^## \[/ { exit }
             found { print }
           ' CHANGELOG.md > RELEASE_NOTES.md
           if [ ! -s RELEASE_NOTES.md ]; then
